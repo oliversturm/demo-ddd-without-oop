@@ -9,22 +9,22 @@ public class Program
 {
     public static void Main()
     {
-        Console.WriteLine("[Program] Starting withdraw money demo...");
+        Console.WriteLine("[csharp-oop] Starting withdraw money demo...");
 
         var repository = new InMemoryAccountRepository();
         var handler = new WithdrawMoneyHandler(repository);
 
         var accountId = Guid.NewGuid();
-        Console.WriteLine($"[Program] Seeding account {accountId} with opening balance 200.00");
+        Console.WriteLine($"[csharp-oop] Seeding account {accountId} with opening balance 200.00");
         repository.Save(new Account(new AccountId(accountId), new Money(200m)));
 
         var command = new WithdrawMoneyCommand { AccountId = accountId, Amount = 100m };
         Console.WriteLine(
-            $"[Program] Dispatching command: withdraw {command.Amount:0.00} from account {command.AccountId}"
+            $"[csharp-oop] Dispatching command: withdraw {command.Amount:0.00} from account {command.AccountId}"
         );
 
         handler.Handle(command);
 
-        Console.WriteLine("[Program] Demo completed.");
+        Console.WriteLine("[csharp-oop] Demo completed.");
     }
 }
