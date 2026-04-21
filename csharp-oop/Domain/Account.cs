@@ -27,8 +27,9 @@ public sealed class Account : AggregateRoot<AccountId>
         if (amount.Amount <= 0)
             throw new InvalidOperationException("Withdrawal amount must be positive.");
 
+        // Sometimes, validation is modelled with custom exceptions instead
         if (Balance.Amount - amount.Amount < 0)
-            throw new InvalidOperationException("Balance cannot go below zero.");
+            throw new InsufficientBalanceException(Balance, amount);
 
         Balance = Balance.Subtract(amount);
     }
