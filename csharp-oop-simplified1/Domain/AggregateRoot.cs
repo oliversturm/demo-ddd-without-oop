@@ -1,4 +1,4 @@
-namespace CsharpFp1.Domain;
+namespace CsharpOopSimplified1.Domain;
 
 /// Conventional DDD base type for aggregates
 public abstract class AggregateRoot<TId>

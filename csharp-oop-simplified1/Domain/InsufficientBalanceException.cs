@@ -1,4 +1,4 @@
-namespace CsharpFp2.Domain;
+namespace CsharpOopSimplified1.Domain;
 
 /// Custom domain exception thrown when a withdrawal would cause the balance to go below zero
 public sealed class InsufficientBalanceException : InvalidOperationException

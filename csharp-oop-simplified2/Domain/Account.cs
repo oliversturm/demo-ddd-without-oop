@@ -1,4 +1,4 @@
-namespace CsharpFp2.Domain;
+namespace CsharpOopSimplified2.Domain;
 
 /// Domain entity / aggregate root representing a bank account
 public sealed class Account

@@ -1,4 +1,4 @@
-namespace CsharpFp2.Domain;
+namespace CsharpOopSimplified1.Domain;
 
 /// Value object used to represent money and enforce simple invariants.
 /// Note that this implementation uses immutable patterns for the data
