@@ -1,8 +1,8 @@
-﻿using CsharpOopSimplified2.Application;
-using CsharpOopSimplified2.Domain;
-using CsharpOopSimplified2.Infrastructure;
+﻿using CsharpFp1.Application;
+using CsharpFp1.Domain;
+using CsharpFp1.Infrastructure;
 
-namespace CsharpOopSimplified2;
+namespace CsharpFp1;
 
 public class Program
 {

@@ -1,6 +1,6 @@
-using CsharpOopSimplified2.Domain;
+using CsharpFp1.Domain;
 
-namespace CsharpOopSimplified2.Infrastructure;
+namespace CsharpFp1.Infrastructure;
 
 /// Simple in-memory repository for demonstration
 public class InMemoryAccountRepository : IAccountRepository
