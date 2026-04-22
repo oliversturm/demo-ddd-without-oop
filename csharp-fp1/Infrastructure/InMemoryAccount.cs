@@ -8,8 +8,9 @@ public delegate Account? LoadAccount(Guid id);
 
 public delegate void SaveAccount(Account accunt);
 
-// If we don't want to use tuples or really miss the interface idea, we can create a named container
-// public sealed record AccountPersistence(LoadAccount Load, SaveAccount Save);
+// If we don't want to use tuples, or you really miss the idea of a combined "interface",
+// we can create a named container
+//   public sealed record AccountPersistence(LoadAccount Load, SaveAccount Save);
 
 public static class InMemoryAccount
 {
