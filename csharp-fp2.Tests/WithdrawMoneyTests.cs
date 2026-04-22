@@ -6,7 +6,7 @@ namespace CsharpFp2.Tests;
 
 /// Tests covering the application-layer use case surface:
 /// what the WithdrawMoney feature does from the caller's perspective.
-public class WithdrawMoneyHandlerTests
+public class WithdrawMoneyTests
 {
     private static (
         WithdrawMoney withdraw,
