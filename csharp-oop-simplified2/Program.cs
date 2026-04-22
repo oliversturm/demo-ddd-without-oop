@@ -1,6 +1,6 @@
-﻿using CsharpFp1.Application;
-using CsharpFp1.Domain;
-using CsharpFp1.Infrastructure;
+﻿using CsharpOopSimplified2.Application;
+using CsharpOopSimplified2.Domain;
+using CsharpOopSimplified2.Infrastructure;
 
 Console.WriteLine("[csharp-oop-simplified2] Starting withdraw money demo...");
 

@@ -1,6 +1,6 @@
-using CsharpFp1.Domain;
+using CsharpOopSimplified2.Domain;
 
-namespace CsharpFp1.Application;
+namespace CsharpOopSimplified2.Application;
 
 public static class AccountApplicationService
 {

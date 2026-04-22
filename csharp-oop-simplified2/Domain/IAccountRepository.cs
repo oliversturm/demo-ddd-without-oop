@@ -1,4 +1,4 @@
-namespace CsharpFp1.Domain;
+namespace CsharpOopSimplified2.Domain;
 
 /// Repository abstraction used to load and save accounts
 public interface IAccountRepository
