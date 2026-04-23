@@ -1,6 +1,6 @@
-using CsharpFp2.Domain;
+using CsharpFp1.Domain;
 
-namespace CsharpFp2.Infrastructure;
+namespace CsharpFp1.Infrastructure;
 
 // If we don't like working with generic delegates directly, we can
 // create custom named delegate types.
@@ -12,7 +12,7 @@ public delegate void SaveAccount(Account accunt);
 // we can create a named container
 //   public sealed record AccountPersistence(LoadAccount Load, SaveAccount Save);
 
-public static class InMemoryAccount
+public static class InMemoryAccountRepository
 {
     public static (LoadAccount, SaveAccount) Create()
     {

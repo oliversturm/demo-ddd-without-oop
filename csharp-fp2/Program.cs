@@ -4,7 +4,7 @@ using CsharpFp2.Infrastructure;
 
 Console.WriteLine("[csharp-fp2] Starting withdraw money demo...");
 
-var (loadAccount, saveAccount) = InMemoryAccount.Create();
+var (loadAccount, saveAccount) = InMemoryAccountRepository.Create();
 var withdrawMoney = AccountApplication.CreateWithdrawMoney(loadAccount, saveAccount);
 
 var accountId = Guid.NewGuid();

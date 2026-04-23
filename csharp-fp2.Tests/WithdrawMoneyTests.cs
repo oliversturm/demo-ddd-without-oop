@@ -14,7 +14,7 @@ public class WithdrawMoneyTests
         SaveAccount saveAccount
     ) BuildHandler()
     {
-        var (loadAccount, saveAccount) = InMemoryAccount.Create();
+        var (loadAccount, saveAccount) = InMemoryAccountRepository.Create();
         var withdraw = AccountApplication.CreateWithdrawMoney(loadAccount, saveAccount);
         return (withdraw, loadAccount, saveAccount);
     }
