@@ -1,0 +1,10 @@
+{
+  "name": "js-fp3",
+  "version": "1.0.0",
+  "description": "Functional DDD demo with intense FP patterns",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  }
+}
