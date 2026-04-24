@@ -6,19 +6,9 @@ import { openAccount } from './domain/account.js';
 import { createMoney } from './domain/money.js';
 import { createWithdrawMoney } from './application/accountApp.js';
 
-/**
- * @param {string} src
- * @param {string} msg
- * @returns {<T, E>(result: import('./library/result.js').Result<T, E>) => import('./library/result.js').Result<T, E>}
- */
 const log = (src, msg) => (result) =>
   tap((x) => output(src, msg)(x))(tapError((e) => outputError(src, e))(result));
 
-/**
- * @param {string} src
- * @param {(x: T) => string} renderText
- * @returns {<T, E>(result: import('./library/result.js').Result<T, E>) => import('./library/result.js').Result<T, E>}
- */
 const logWith = (src, renderText) => (result) =>
   tap((x) => output(src, renderText(x))(x))(tapError((e) => outputError(src, e))(result));
 
