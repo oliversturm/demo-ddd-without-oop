@@ -34,5 +34,7 @@ export const createInMemoryRepository = () => {
     );
   };
 
+	// What if something goes wrong?
+	// throw new Error('Repository creation failed for external reasons');
   return { loadAccount: getById, saveAccount: save };
 };
