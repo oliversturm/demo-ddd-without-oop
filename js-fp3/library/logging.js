@@ -1,4 +1,7 @@
-import { tap, tapError } from './result.js';
+import { tap, tapError, pipe } from './result.js';
+import { formatMoney as formatMoneyFromDomain } from '../domain/money.js';
+
+export { formatMoneyFromDomain as formatMoney };
 
 export const logReturn = (message, r) => {
   console.log(message);
@@ -19,6 +22,12 @@ export const outputError = (src, error) => {
   console.error(`\x1b[1;31m[${src} ERROR]\x1b[0m ${value}`);
 };
 
-export const log = (src, message) => tap(output(src, message));
+export const logSuccess = (src, message) => tap(output(src, message));
 
-export const logWith = (src, renderText) => tap(outputWith(src, renderText));
+export const logSuccessWith = (src, renderText) => tap(outputWith(src, renderText));
+
+export const log = (src, message) => (result) =>
+  pipe(result, tap(output(src, message)), tapError((e) => outputError(src, e)));
+
+export const logWith = (src, renderText) => (result) =>
+  pipe(result, tap((x) => output(src, renderText(x))(x)), tapError((e) => outputError(src, e)));

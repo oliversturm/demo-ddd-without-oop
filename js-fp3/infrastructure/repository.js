@@ -1,5 +1,5 @@
 import { ok, fail } from '../library/result.js';
-import { logReturn } from '../library/logging.js';
+import { logReturn, formatMoney } from '../library/logging.js';
 import { accountNotFound } from '../domain/account.js';
 
 export const repositoryCreationFailed = (message) => ({
@@ -29,7 +29,7 @@ export const createInMemoryRepository = () => {
   const save = (account) => {
     store.set(account.id, account);
     return logReturn(
-      `[Repo] Saved account ${account.id} with balance ${account.balance.amount.toFixed(2)}`,
+      `[Repo] Saved account ${account.id} with balance ${formatMoney(account.balance)}`,
       ok(account)
     );
   };
