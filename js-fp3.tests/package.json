@@ -1,0 +1,13 @@
+{
+  "name": "js-fp3-tests",
+  "version": "1.0.0",
+  "description": "Vitest tests for js-fp3",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "^2.0.0"
+  }
+}
