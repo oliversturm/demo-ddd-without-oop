@@ -1,6 +1,3 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
-
 namespace CsharpEs.Library;
 
 public static class Logging
@@ -23,18 +20,7 @@ public static class Logging
     }
 
     public static string Format(Object? o) =>
-        o != null
-            ? Indent(
-                JsonSerializer.Serialize(
-                    o,
-                    new JsonSerializerOptions
-                    {
-                        WriteIndented = true,
-                        Converters = { new JsonStringEnumConverter() },
-                    }
-                )
-            )
-            : "(null)";
+        Indent(ObjectDumper.Dump(o, new DumpOptions() { DumpStyle = DumpStyle.CSharp }));
 
     public static void Output(string src, string message, Object? x)
     {

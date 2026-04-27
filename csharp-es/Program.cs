@@ -19,10 +19,13 @@ public class Program
     {
         accountId = Guid.NewGuid();
         demoCommands = demoCommands.AddRange([
-            new AccountCommand.OpenAccount(accountId, new Money(-200m)),
-            //            new AccountCommand.OpenAccount(accountId, new Money(200m)),
+            // bring this in to see an error right from the start
+            // new AccountCommand.OpenAccount(accountId, new Money(-200m)),
+            new AccountCommand.OpenAccount(accountId, new Money(200m)),
             new AccountCommand.WithdrawMoney(accountId, new Money(100m)),
             new AccountCommand.WithdrawMoney(accountId, new Money(200m)),
+            // or maybe an exception in between?
+            // new AccountCommand.UnhandledTestCommand(),
             new AccountCommand.DepositMoney(accountId, new Money(500m)),
         ]);
     }
@@ -65,12 +68,14 @@ public class Program
                     .Aggregate(
                         Result<AccountState?, DemoError>.Ok(null),
                         (stateResult, command) =>
-                            stateResult.Bind(state =>
-                                AccountDecider
-                                    .Decide(state, command)
-                                    .MapError(e => (DemoError)new DemoError.Account(e))
-                                    .Bind(@event => ApplyEvent(readModel, state, @event))
-                            )
+                            stateResult
+                                .Bind(state =>
+                                    AccountDecider
+                                        .Decide(state, command)
+                                        .MapError(e => (DemoError)new DemoError.Account(e))
+                                        .Bind(@event => ApplyEvent(readModel, state, @event))
+                                )
+                                .Log("loop", "Intermediate state")
                     )
                     .Bind(s =>
                         readModel

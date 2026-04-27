@@ -11,6 +11,8 @@ public abstract record AccountCommand
     public sealed record WithdrawMoney(Guid AccountId, Money Amount) : AccountCommand;
 
     public sealed record DepositMoney(Guid AccountId, Money Amount) : AccountCommand;
+
+    public sealed record UnhandledTestCommand() : AccountCommand;
 }
 
 public abstract record AccountEvent(Guid AccountId)
@@ -31,7 +33,7 @@ public abstract record AccountError
 
     public sealed record OpeningBalanceMustBeNonNegative : AccountError;
 
-    public sealed record InnerException(Exception exception) : AccountError;
+    public sealed record InnerException(string Message) : AccountError;
 }
 
 public static class AccountDecider
@@ -75,7 +77,7 @@ public static class AccountDecider
 
                     _ => throw new InvalidOperationException("Unknown command."),
                 },
-            e => new AccountError.InnerException(e)
+            e => new AccountError.InnerException(e.Message)
         );
 
     public static Result<AccountState?, AccountError> Evolve(
