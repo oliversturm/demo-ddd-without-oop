@@ -2,6 +2,7 @@
 using CsharpEs.Domain;
 using CsharpEs.Infrastructure;
 using CsharpEs.Library;
+using static CsharpEs.Library.ResultModule;
 
 public abstract record DemoError
 {
@@ -66,7 +67,7 @@ public class Program
             .Bind(readModel =>
                 demoCommands
                     .Aggregate(
-                        Result<AccountState?, DemoError>.Ok(null),
+                        OkNone<AccountState?, DemoError>(),
                         (stateResult, command) =>
                             stateResult
                                 .Bind(state =>

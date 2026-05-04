@@ -1,4 +1,5 @@
 using CsharpFp3.Library;
+using static CsharpFp3.Library.ResultModule;
 
 namespace CsharpFp3.Tests;
 
@@ -10,7 +11,7 @@ public class ResultTests
     [Fact]
     public void Ok_is_success()
     {
-        var result = Result<int, string>.Ok(42);
+        Result<int, string> result = new ResultOk<int, string>(42);
 
         Assert.True(result.IsSuccess);
         Assert.False(result.IsFailure);
@@ -19,42 +20,26 @@ public class ResultTests
     [Fact]
     public void Fail_is_failure()
     {
-        var result = Result<int, string>.Fail("oops");
+        Result<int, string> result = new ResultFail<int, string>("oops");
 
         Assert.True(result.IsFailure);
         Assert.False(result.IsSuccess);
     }
 
     [Fact]
-    public void Ok_exposes_value()
+    public void Ok_exposes_value_via_Match()
     {
-        var result = Result<int, string>.Ok(42);
+        Result<int, string> result = new ResultOk<int, string>(42);
 
-        Assert.Equal(42, result.Value);
+        Assert.Equal(42, result.Match(v => v, _ => 0));
     }
 
     [Fact]
-    public void Fail_exposes_error()
+    public void Fail_exposes_error_via_Match()
     {
-        var result = Result<int, string>.Fail("oops");
+        Result<int, string> result = new ResultFail<int, string>("oops");
 
-        Assert.Equal("oops", result.Error);
-    }
-
-    [Fact]
-    public void Accessing_Value_on_a_failed_result_throws()
-    {
-        var result = Result<int, string>.Fail("oops");
-
-        Assert.Throws<InvalidOperationException>(() => result.Value);
-    }
-
-    [Fact]
-    public void Accessing_Error_on_a_successful_result_throws()
-    {
-        var result = Result<int, string>.Ok(42);
-
-        Assert.Throws<InvalidOperationException>(() => result.Error);
+        Assert.Equal("oops", result.Match(_ => "", e => e));
     }
 
     // --- Match ---
@@ -62,7 +47,7 @@ public class ResultTests
     [Fact]
     public void Match_calls_onSuccess_for_Ok()
     {
-        var result = Result<int, string>.Ok(10);
+        Result<int, string> result = new ResultOk<int, string>(10);
 
         var output = result.Match(v => $"value:{v}", e => $"error:{e}");
 
@@ -72,7 +57,7 @@ public class ResultTests
     [Fact]
     public void Match_calls_onFailure_for_Fail()
     {
-        var result = Result<int, string>.Fail("bad");
+        Result<int, string> result = new ResultFail<int, string>("bad");
 
         var output = result.Match(v => $"value:{v}", e => $"error:{e}");
 
@@ -84,7 +69,7 @@ public class ResultTests
     [Fact]
     public void Switch_calls_onSuccess_for_Ok()
     {
-        var result = Result<int, string>.Ok(7);
+        Result<int, string> result = new ResultOk<int, string>(7);
         var called = false;
 
         result.Switch(_ => called = true, _ => { });
@@ -95,7 +80,7 @@ public class ResultTests
     [Fact]
     public void Switch_calls_onFailure_for_Fail()
     {
-        var result = Result<int, string>.Fail("err");
+        Result<int, string> result = new ResultFail<int, string>("err");
         var called = false;
 
         result.Switch(_ => { }, _ => called = true);
@@ -111,7 +96,7 @@ public class ResultTests
         var result = Result<int, string>.Catch(() => 99, ex => ex.Message);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(99, result.Value);
+        Assert.Equal(99, result.Match(v => v, _ => 0));
     }
 
     [Fact]
@@ -123,7 +108,7 @@ public class ResultTests
         );
 
         Assert.True(result.IsFailure);
-        Assert.Equal("boom", result.Error);
+        Assert.Equal("boom", result.Match(_ => "", e => e));
     }
 
     // --- Bind ---
@@ -131,33 +116,34 @@ public class ResultTests
     [Fact]
     public void Bind_chains_to_the_next_result_on_success()
     {
-        var result = Result<int, string>.Ok(5).Bind(v => Result<string, string>.Ok($"got {v}"));
+        Result<int, string> result = new ResultOk<int, string>(5);
+        var chained = result.Bind(v => new ResultOk<string, string>($"got {v}"));
 
-        Assert.Equal("got 5", result.Value);
+        Assert.Equal("got 5", chained.Match(v => v, _ => ""));
     }
 
     [Fact]
     public void Bind_short_circuits_on_failure_without_calling_the_binder()
     {
         var binderCalled = false;
-        var result = Result<int, string>
-            .Fail("nope")
-            .Bind(v =>
-            {
-                binderCalled = true;
-                return Result<string, string>.Ok($"got {v}");
-            });
+        Result<int, string> result = new ResultFail<int, string>("nope");
+        var chained = result.Bind(v =>
+        {
+            binderCalled = true;
+            return new ResultOk<string, string>($"got {v}");
+        });
 
         Assert.False(binderCalled);
-        Assert.Equal("nope", result.Error);
+        Assert.Equal("nope", chained.Match(_ => "", e => e));
     }
 
     [Fact]
     public void Bind_propagates_the_inner_failure_when_the_binder_returns_Fail()
     {
-        var result = Result<int, string>.Ok(5).Bind(_ => Result<string, string>.Fail("inner fail"));
+        Result<int, string> result = new ResultOk<int, string>(5);
+        var chained = result.Bind(_ => new ResultFail<string, string>("inner fail"));
 
-        Assert.Equal("inner fail", result.Error);
+        Assert.Equal("inner fail", chained.Match(_ => "", e => e));
     }
 
     // --- Map ---
@@ -165,23 +151,25 @@ public class ResultTests
     [Fact]
     public void Map_transforms_the_value_on_success()
     {
-        var result = Result<int, string>.Ok(3).Map(v => v * 2);
+        Result<int, string> result = new ResultOk<int, string>(3);
+        var mapped = result.Map(v => v * 2);
 
-        Assert.Equal(6, result.Value);
+        Assert.Equal(6, mapped.Match(v => v, _ => 0));
     }
 
     [Fact]
     public void Map_does_not_call_the_mapper_on_failure()
     {
         var mapperCalled = false;
-        var result = Result<int, string>.Fail("err").Map(v =>
+        Result<int, string> result = new ResultFail<int, string>("err");
+        var mapped = result.Map(v =>
         {
             mapperCalled = true;
             return v * 2;
         });
 
         Assert.False(mapperCalled);
-        Assert.Equal("err", result.Error);
+        Assert.Equal("err", mapped.Match(_ => "", e => e));
     }
 
     // --- Tap ---
@@ -190,17 +178,19 @@ public class ResultTests
     public void Tap_calls_the_action_and_returns_the_original_result_on_success()
     {
         var seen = -1;
-        var result = Result<int, string>.Ok(8).Tap(v => seen = v);
+        Result<int, string> result = new ResultOk<int, string>(8);
+        var tapped = result.Tap(v => seen = v);
 
         Assert.Equal(8, seen);
-        Assert.Equal(8, result.Value);
+        Assert.Equal(8, tapped.Match(v => v, _ => 0));
     }
 
     [Fact]
     public void Tap_does_not_call_the_action_on_failure()
     {
         var called = false;
-        Result<int, string>.Fail("err").Tap(_ => called = true);
+        Result<int, string> result = new ResultFail<int, string>("err");
+        result.Tap(_ => called = true);
 
         Assert.False(called);
     }
@@ -211,17 +201,19 @@ public class ResultTests
     public void TapError_calls_the_action_and_returns_the_original_result_on_failure()
     {
         var seen = "";
-        var result = Result<int, string>.Fail("bad").TapError(e => seen = e);
+        Result<int, string> result = new ResultFail<int, string>("bad");
+        var tapped = result.TapError(e => seen = e);
 
         Assert.Equal("bad", seen);
-        Assert.Equal("bad", result.Error);
+        Assert.Equal("bad", tapped.Match(_ => "", e => e));
     }
 
     [Fact]
     public void TapError_does_not_call_the_action_on_success()
     {
         var called = false;
-        Result<int, string>.Ok(1).TapError(_ => called = true);
+        Result<int, string> result = new ResultOk<int, string>(1);
+        result.TapError(_ => called = true);
 
         Assert.False(called);
     }
@@ -231,23 +223,25 @@ public class ResultTests
     [Fact]
     public void MapError_transforms_the_error_on_failure()
     {
-        var result = Result<int, string>.Fail("oops").MapError(e => e.Length);
+        Result<int, string> result = new ResultFail<int, string>("oops");
+        var mapped = result.MapError(e => e.Length);
 
-        Assert.Equal(4, result.Error);
+        Assert.Equal(4, mapped.Match(_ => 0, e => e));
     }
 
     [Fact]
     public void MapError_does_not_call_the_mapper_on_success()
     {
         var mapperCalled = false;
-        var result = Result<int, string>.Ok(1).MapError(e =>
+        Result<int, string> result = new ResultOk<int, string>(1);
+        var mapped = result.MapError(e =>
         {
             mapperCalled = true;
             return e.Length;
         });
 
         Assert.False(mapperCalled);
-        Assert.Equal(1, result.Value);
+        Assert.Equal(1, mapped.Match(v => v, _ => 0));
     }
 
     // --- Select / SelectMany (LINQ support) ---
@@ -255,41 +249,48 @@ public class ResultTests
     [Fact]
     public void Select_is_equivalent_to_Map()
     {
-        var result = Result<int, string>.Ok(4).Select(v => v + 1);
+        Result<int, string> result = new ResultOk<int, string>(4);
+        var selected = result.Select(v => v + 1);
 
-        Assert.Equal(5, result.Value);
+        Assert.Equal(5, selected.Match(v => v, _ => 0));
     }
 
     [Fact]
     public void SelectMany_sequences_two_successful_results()
     {
+        Result<int, string> aResult = new ResultOk<int, string>(3);
+        Result<int, string> bResult = new ResultOk<int, string>(4);
         var result =
-            from a in Result<int, string>.Ok(3)
-            from b in Result<int, string>.Ok(4)
+            from a in aResult
+            from b in bResult
             select a + b;
 
-        Assert.Equal(7, result.Value);
+        Assert.Equal(7, result.Match(v => v, _ => 0));
     }
 
     [Fact]
     public void SelectMany_short_circuits_when_the_first_result_fails()
     {
+        Result<int, string> aResult = new ResultFail<int, string>("first fail");
+        Result<int, string> bResult = new ResultOk<int, string>(4);
         var result =
-            from a in Result<int, string>.Fail("first fail")
-            from b in Result<int, string>.Ok(4)
+            from a in aResult
+            from b in bResult
             select a + b;
 
-        Assert.Equal("first fail", result.Error);
+        Assert.Equal("first fail", result.Match(_ => "", e => e));
     }
 
     [Fact]
     public void SelectMany_short_circuits_when_the_second_result_fails()
     {
+        Result<int, string> aResult = new ResultOk<int, string>(3);
+        Result<int, string> bResult = new ResultFail<int, string>("second fail");
         var result =
-            from a in Result<int, string>.Ok(3)
-            from b in Result<int, string>.Fail("second fail")
+            from a in aResult
+            from b in bResult
             select a + b;
 
-        Assert.Equal("second fail", result.Error);
+        Assert.Equal("second fail", result.Match(_ => "", e => e));
     }
 }

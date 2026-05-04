@@ -1,4 +1,5 @@
 using CsharpFp3.Library;
+using static CsharpFp3.Library.ResultModule;
 
 namespace CsharpFp3.Domain;
 
@@ -19,22 +20,19 @@ public static class AccountDomain
 {
     public static Result<Account, AccountError> Open(Guid id, Money openingBalance) =>
         openingBalance.Amount < 0m
-            ? Result<Account, AccountError>.Fail(new AccountError.OpeningBalanceMustBeNonNegative())
-            : Result<Account, AccountError>.Ok(new Account(id, openingBalance));
+            ? Fail(new AccountError.OpeningBalanceMustBeNonNegative())
+            : Ok(new Account(id, openingBalance));
 
     public static Result<Account, AccountError> Withdraw(Account account, Money amount) =>
         (account.Balance.Amount, amount.Amount) switch
         {
-            (_, <= 0m) => Result<Account, AccountError>.Fail(
-                new AccountError.AmountMustBePositive()
+            (_, <= 0m) => Fail(new AccountError.AmountMustBePositive()),
+
+            var (balance, transaction) when balance < transaction => Fail(
+                new AccountError.InsufficientBalance(account.Balance, amount)
             ),
 
-            var (balance, transaction) when balance < transaction => Result<
-                Account,
-                AccountError
-            >.Fail(new AccountError.InsufficientBalance(account.Balance, amount)),
-
-            var (balance, transaction) => Result<Account, AccountError>.Ok(
+            var (balance, transaction) => Ok(
                 account with
                 {
                     Balance = new Money(balance - transaction),

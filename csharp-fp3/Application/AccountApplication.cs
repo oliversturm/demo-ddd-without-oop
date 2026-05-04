@@ -1,6 +1,7 @@
 using CsharpFp3.Domain;
 using CsharpFp3.Infrastructure;
 using CsharpFp3.Library;
+using static CsharpFp3.Library.ResultModule;
 
 namespace CsharpFp3.Application;
 
@@ -16,8 +17,9 @@ public abstract record AppError
 public static class AccountApplication
 {
     public static CreateResultType CreateWithdrawMoney(Repository repo) =>
-        CreateResultType.Ok(
-            (accountId, amount) =>
+        Ok(
+            // types needed in this lambda, otherwise c# doesn't love us
+            (Guid accountId, decimal amount) =>
                 repo.LoadAccount(accountId)
                     .Log("App load", "Account loaded")
                     .Log("App exec wdrwl", $"[App] Executing withdrawal of {amount:0.00}...")

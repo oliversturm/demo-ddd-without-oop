@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using CsharpEs.Domain;
 using CsharpEs.Library;
+using static CsharpEs.Library.ResultModule;
 
 namespace CsharpEs.Infrastructure;
 
@@ -57,9 +58,7 @@ public static class AccountBalanceReadModelModule
                             );
                         }
                         else
-                            return Result<AccountDetails, ReadModelError>.Fail(
-                                new ReadModelError.AccountDetailsNotFound()
-                            );
+                            return Fail(new ReadModelError.AccountDetailsNotFound());
                     }
                     break;
 
@@ -78,9 +77,7 @@ public static class AccountBalanceReadModelModule
                             );
                         }
                         else
-                            return Result<AccountDetails, ReadModelError>.Fail(
-                                new ReadModelError.AccountDetailsNotFound()
-                            );
+                            return Fail(new ReadModelError.AccountDetailsNotFound());
                     }
                     break;
             }
@@ -88,15 +85,13 @@ public static class AccountBalanceReadModelModule
             // Read model-side "project" may not normally return any data, but for demo
             // purposes we return the affected data directly to save us modeling a separate
             // query side.
-            return Result<AccountDetails, ReadModelError>.Ok(modelData[@event.AccountId]);
+            return Ok(modelData[@event.AccountId]);
         }
 
         Result<KeyValuePair<Guid, AccountDetails>[], ReadModelError> Query() =>
-            Result<KeyValuePair<Guid, AccountDetails>[], ReadModelError>.Ok(modelData.ToArray());
+            Ok(modelData.ToArray());
 
-        return Result<AccountBalanceReadModel, ReadModelError>.Ok(
-            new AccountBalanceReadModel(Project, Query)
-        );
+        return Ok(new AccountBalanceReadModel(Project, Query));
     }
 
     private static AccountFlags CalcAccountFlags(Money newBalance, AccountDetails oldDetails)

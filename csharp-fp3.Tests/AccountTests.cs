@@ -1,4 +1,5 @@
 using CsharpFp3.Domain;
+using CsharpFp3.Library;
 
 namespace CsharpFp3.Tests;
 
@@ -11,46 +12,52 @@ public class AccountTests
     {
         var result = AccountDomain.Open(Guid.NewGuid(), new Money(-1m));
 
-        Assert.IsType<AccountError.OpeningBalanceMustBeNonNegative>(result.Error);
+        Assert.True(result.Match(_ => false, e => e is AccountError.OpeningBalanceMustBeNonNegative));
     }
 
     [Fact]
     public void Withdrawing_a_zero_amount_returns_AmountMustBePositive()
     {
-        var account = AccountDomain.Open(Guid.NewGuid(), new Money(100m)).Value;
+        var accountResult = AccountDomain.Open(Guid.NewGuid(), new Money(100m));
+        var account = accountResult.Match(v => v, _ => throw new InvalidOperationException("Expected success"));
 
         var result = AccountDomain.Withdraw(account, new Money(0m));
 
-        Assert.IsType<AccountError.AmountMustBePositive>(result.Error);
+        Assert.True(result.Match(_ => false, e => e is AccountError.AmountMustBePositive));
     }
 
     [Fact]
     public void Withdrawing_a_negative_amount_returns_AmountMustBePositive()
     {
-        var account = AccountDomain.Open(Guid.NewGuid(), new Money(100m)).Value;
+        var accountResult = AccountDomain.Open(Guid.NewGuid(), new Money(100m));
+        var account = accountResult.Match(v => v, _ => throw new InvalidOperationException("Expected success"));
 
         var result = AccountDomain.Withdraw(account, new Money(-10m));
 
-        Assert.IsType<AccountError.AmountMustBePositive>(result.Error);
+        Assert.True(result.Match(_ => false, e => e is AccountError.AmountMustBePositive));
     }
 
     [Fact]
     public void Withdrawing_more_than_the_balance_returns_InsufficientBalance()
     {
-        var account = AccountDomain.Open(Guid.NewGuid(), new Money(100m)).Value;
+        var accountResult = AccountDomain.Open(Guid.NewGuid(), new Money(100m));
+        var account = accountResult.Match(v => v, _ => throw new InvalidOperationException("Expected success"));
 
         var result = AccountDomain.Withdraw(account, new Money(101m));
 
-        Assert.IsType<AccountError.InsufficientBalance>(result.Error);
+        Assert.True(result.Match(_ => false, e => e is AccountError.InsufficientBalance));
     }
 
     [Fact]
     public void InsufficientBalance_error_reports_the_current_balance_and_attempted_amount()
     {
-        var account = AccountDomain.Open(Guid.NewGuid(), new Money(100m)).Value;
+        var accountResult = AccountDomain.Open(Guid.NewGuid(), new Money(100m));
+        var account = accountResult.Match(v => v, _ => throw new InvalidOperationException("Expected success"));
 
-        var error = Assert.IsType<AccountError.InsufficientBalance>(
-            AccountDomain.Withdraw(account, new Money(150m)).Error
+        var result = AccountDomain.Withdraw(account, new Money(150m));
+        var error = result.Match(
+            _ => throw new InvalidOperationException("Expected failure"),
+            e => e is AccountError.InsufficientBalance ins ? ins : throw new InvalidOperationException("Expected InsufficientBalance")
         );
 
         Assert.Equal(100m, error.Balance.Amount);
@@ -60,13 +67,14 @@ public class AccountTests
     [Fact]
     public void Successive_withdrawals_are_each_applied_to_the_running_balance()
     {
-        var account = AccountDomain.Open(Guid.NewGuid(), new Money(300m)).Value;
+        var accountResult = AccountDomain.Open(Guid.NewGuid(), new Money(300m));
+        var account = accountResult.Match(v => v, _ => throw new InvalidOperationException("Expected success"));
 
         var result1 = AccountDomain.Withdraw(account, new Money(100m));
-        var updatedAccount1 = result1.Value;
+        var updatedAccount1 = result1.Match(v => v, _ => throw new InvalidOperationException("Expected success"));
 
         var result2 = AccountDomain.Withdraw(updatedAccount1, new Money(100m));
-        var updatedAccount2 = result2.Value;
+        var updatedAccount2 = result2.Match(v => v, _ => throw new InvalidOperationException("Expected success"));
 
         Assert.Equal(100m, updatedAccount2.Balance.Amount);
     }

@@ -31,9 +31,7 @@ Result<Repository, AppError>
                         "csharp-fp3 exec",
                         $"Executing withdrawal {withdrawalAmount:0.00} from account {accountId}"
                     )
-                    .Bind<Account, Account, AccountError>(account =>
-                        withdrawMoney(account.Id, withdrawalAmount)
-                    )
+                    .Bind(account => withdrawMoney(account.Id, withdrawalAmount))
                     .Log("csharp-fp3 new balance", account => $"New balance is {account.Balance}")
                     .MapError(ae => (AppError)new AppError.InnerAccountError(ae))
             )

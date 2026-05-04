@@ -1,138 +1,137 @@
 namespace CsharpEs.Library;
 
-public readonly record struct Result<T, E>
+// disable match exhaustion warnings - C# thinks we could have other
+// derived instances of Result<T,E> but there's no way to say
+// "don't allow creation of further derived types" while leaving
+// the type publicly visible.
+#pragma warning disable CS8509
+
+public abstract record Result<T, E>
 {
-    private readonly T _value;
+    public static implicit operator Result<T, E>(T value) => new ResultOk<T, E>(value);
 
-    private readonly E _error;
+    public static implicit operator Result<T, E>(E error) => new ResultFail<T, E>(error);
+}
 
-    public bool IsSuccess { get; }
+public sealed record ResultOk<T, E>(T Value) : Result<T, E>;
 
-    public bool IsFailure => !IsSuccess;
+public sealed record ResultFail<T, E>(E Error) : Result<T, E>;
 
-    public T Value =>
-        IsSuccess
-            ? _value
-            : throw new InvalidOperationException("No value present for failed result.");
+public static class ResultModule
+{
+    public static T Ok<T>(T v) => v;
 
-    public E Error =>
-        IsFailure
-            ? _error
-            : throw new InvalidOperationException("No error present for successful result.");
+    public static Result<T?, E> OkNone<T, E>()
+        where T : class? => new ResultOk<T?, E>(null);
 
-    private Result(T value)
-    {
-        _value = value;
-        _error = default!;
-        IsSuccess = true;
-    }
-
-    private Result(E error)
-    {
-        _value = default!;
-        _error = error;
-        IsSuccess = false;
-    }
-
-    public static Result<T, E> Ok(T value) => new(value);
-
-    public static Result<T, E> Fail(E error) => new(error);
-
-    public TResult Match<TResult>(Func<T, TResult> onSuccess, Func<E, TResult> onFailure) =>
-        IsSuccess ? onSuccess(_value) : onFailure(_error);
-
-    public void Switch(Action<T> onSuccess, Action<E> onFailure)
-    {
-        if (IsSuccess)
-            onSuccess(_value);
-        else
-            onFailure(_error);
-    }
-
-    public static Result<T, E> Catch(Func<T> f, Func<Exception, E> exceptionMapper)
-    {
-        try
-        {
-            var result = f();
-            return Result<T, E>.Ok(result);
-        }
-        catch (Exception e)
-        {
-            return Result<T, E>.Fail(exceptionMapper(e));
-        }
-    }
-
-    public static Result<T, E> Catch(Func<Result<T, E>> f, Func<Exception, E> exceptionMapper)
-    {
-        try
-        {
-            return f();
-        }
-        catch (Exception e)
-        {
-            return Result<T, E>.Fail(exceptionMapper(e));
-        }
-    }
+    public static E Fail<E>(E e) => e;
 }
 
 public static class ResultExtensions
 {
-    public static Result<TOut, E> Bind<TIn, TOut, E>(
-        this Result<TIn, E> result,
-        Func<TIn, Result<TOut, E>> binder
-    ) => result.IsSuccess ? binder(result.Value) : Result<TOut, E>.Fail(result.Error);
-
-    public static Result<TOut, E> Map<TIn, TOut, E>(
-        this Result<TIn, E> result,
-        Func<TIn, TOut> mapper
-    ) =>
-        result.IsSuccess
-            ? Result<TOut, E>.Ok(mapper(result.Value))
-            : Result<TOut, E>.Fail(result.Error);
-
-    public static Result<T, E> Tap<T, E>(this Result<T, E> result, Action<T> action)
+    extension<TIn, E>(Result<TIn, E> result)
     {
-        if (result.IsSuccess)
-            action(result.Value);
+        public bool IsSuccess => result is ResultOk<TIn, E>;
+        public bool IsFailure => !result.IsSuccess;
 
-        return result;
+        public Result<TOut, E> Bind<TOut>(Func<TIn, Result<TOut, E>> binder) =>
+            result switch
+            {
+                ResultOk<TIn, E>(var v) => binder(v),
+                ResultFail<TIn, E>(var e) => new ResultFail<TOut, E>(e),
+            };
+
+        public Result<TOut, E> Map<TOut>(Func<TIn, TOut> mapper) =>
+            result switch
+            {
+                ResultOk<TIn, E>(var v) => new ResultOk<TOut, E>(mapper(v)),
+                ResultFail<TIn, E>(var e) => new ResultFail<TOut, E>(e),
+            };
+
+        public Result<TIn, EOut> MapError<EOut>(Func<E, EOut> mapper) =>
+            result switch
+            {
+                ResultOk<TIn, E>(var v) => new ResultOk<TIn, EOut>(v),
+                ResultFail<TIn, E>(var e) => new ResultFail<TIn, EOut>(mapper(e)),
+            };
+
+        public Result<TIn, E> Tap(Action<TIn> action)
+        {
+            if (result is ResultOk<TIn, E>(var v))
+                action(v);
+            return result;
+        }
+
+        public Result<TIn, E> TapError(Action<E> action)
+        {
+            if (result is ResultFail<TIn, E>(var e))
+                action(e);
+            return result;
+        }
+
+        public Result<TIn, E> Log(string src, string msg) =>
+            Tap(result, Logging.OutputDelegate<TIn>(src, msg))
+                .TapError(m => Logging.OutputError(src, m));
+
+        public Result<TIn, E> Log(string src, Func<TIn, string> renderText) =>
+            Tap(result, x => Logging.OutputDelegate<TIn>(src, renderText(x))(x))
+                .TapError(m => Logging.OutputError(src, m));
+
+        public Result<TOut, E> Select<TOut>(Func<TIn, TOut> mapper) => Map(result, mapper);
+
+        public Result<TOut, E> SelectMany<TIntermediate, TOut>(
+            Func<TIn, Result<TIntermediate, E>> binder,
+            Func<TIn, TIntermediate, TOut> projector
+        ) => Bind(result, x => binder(x).Map(y => projector(x, y)));
+
+        public TResult Match<TResult>(Func<TIn, TResult> onSuccess, Func<E, TResult> onFailure) =>
+            result switch
+            {
+                ResultOk<TIn, E>(var v) => onSuccess(v),
+                ResultFail<TIn, E>(var e) => onFailure(e),
+            };
+
+        public void Switch(Action<TIn> onSuccess, Action<E> onFailure)
+        {
+            switch (result)
+            {
+                case ResultOk<TIn, E>(var v):
+                    onSuccess(v);
+                    break;
+                case ResultFail<TIn, E>(var e):
+                    onFailure(e);
+                    break;
+            }
+        }
     }
 
-    public static Result<T, E> TapError<T, E>(this Result<T, E> result, Action<E> action)
+    extension<TIn, E>(Result<TIn, E>)
     {
-        if (result.IsFailure)
-            action(result.Error);
+        public static Result<TIn, E> Catch(Func<TIn> f, Func<Exception, E> exceptionMapper)
+        {
+            try
+            {
+                return new ResultOk<TIn, E>(f());
+            }
+            catch (Exception e)
+            {
+                return new ResultFail<TIn, E>(exceptionMapper(e));
+            }
+        }
 
-        return result;
+        public static Result<TIn, E> Catch(
+            Func<Result<TIn, E>> f,
+            Func<Exception, E> exceptionMapper
+        )
+        {
+            try
+            {
+                return f();
+            }
+            catch (Exception e)
+            {
+                return new ResultFail<TIn, E>(exceptionMapper(e));
+            }
+        }
     }
-
-    public static Result<T, EOut> MapError<T, EIn, EOut>(
-        this Result<T, EIn> result,
-        Func<EIn, EOut> map
-    ) =>
-        result.IsSuccess
-            ? Result<T, EOut>.Ok(result.Value)
-            : Result<T, EOut>.Fail(map(result.Error));
-
-    public static Result<T, E> Log<T, E>(this Result<T, E> result, string src, string msg) =>
-        Tap(result, Logging.OutputDelegate<T>(src, msg)).TapError(m => Logging.OutputError(src, m));
-
-    public static Result<T, E> Log<T, E>(
-        this Result<T, E> result,
-        string src,
-        Func<T, string> renderText
-    ) =>
-        Tap(result, x => Logging.OutputDelegate<T>(src, renderText(x))(x))
-            .TapError(m => Logging.OutputError(src, m));
-
-    public static Result<TOut, E> Select<TIn, TOut, E>(
-        this Result<TIn, E> result,
-        Func<TIn, TOut> mapper
-    ) => result.Map(mapper);
-
-    public static Result<TOut, E> SelectMany<TIn, TIntermediate, TOut, E>(
-        this Result<TIn, E> result,
-        Func<TIn, Result<TIntermediate, E>> binder,
-        Func<TIn, TIntermediate, TOut> projector
-    ) => result.Bind(x => binder(x).Map(y => projector(x, y)));
 }

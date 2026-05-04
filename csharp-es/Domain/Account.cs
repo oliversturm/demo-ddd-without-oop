@@ -1,4 +1,5 @@
 using CsharpEs.Library;
+using static CsharpEs.Library.ResultModule;
 
 namespace CsharpEs.Domain;
 
@@ -47,31 +48,27 @@ public static class AccountDecider
                 (state, command) switch
                 {
                     // if this is a new account, check for valid opening balance
-                    (null, AccountCommand.OpenAccount c) when c.OpeningBalance.Amount < 0m =>
-                        Result<AccountEvent, AccountError>.Fail(
-                            new AccountError.OpeningBalanceMustBeNonNegative()
-                        ),
+                    (null, AccountCommand.OpenAccount c) when c.OpeningBalance.Amount < 0m => Fail(
+                        new AccountError.OpeningBalanceMustBeNonNegative()
+                    ),
 
                     // still a new account, now we can open it
-                    (null, AccountCommand.OpenAccount c) => Result<AccountEvent, AccountError>.Ok(
+                    (null, AccountCommand.OpenAccount c) => Ok(
                         new AccountEvent.AccountOpened(c.AccountId, c.OpeningBalance)
                     ),
 
                     // if we have an account already, you can't open it
-                    (not null, AccountCommand.OpenAccount c) => Result<
-                        AccountEvent,
-                        AccountError
-                    >.Fail(new AccountError.AccountOpenAlready()),
-
-                    (null, _) => Result<AccountEvent, AccountError>.Fail(
-                        new AccountError.AccountNotFound()
+                    (not null, AccountCommand.OpenAccount c) => Fail(
+                        new AccountError.AccountOpenAlready()
                     ),
 
-                    (_, AccountCommand.WithdrawMoney c) => Result<AccountEvent, AccountError>.Ok(
+                    (null, _) => Fail(new AccountError.AccountNotFound()),
+
+                    (_, AccountCommand.WithdrawMoney c) => Ok(
                         new AccountEvent.MoneyWithdrawn(c.AccountId, c.Amount)
                     ),
 
-                    (_, AccountCommand.DepositMoney c) => Result<AccountEvent, AccountError>.Ok(
+                    (_, AccountCommand.DepositMoney c) => Ok(
                         new AccountEvent.MoneyDeposited(c.AccountId, c.Amount)
                     ),
 
@@ -86,10 +83,8 @@ public static class AccountDecider
     ) =>
         (state, @event) switch
         {
-            (null, AccountEvent.AccountOpened e) => Result<AccountState?, AccountError>.Ok(
-                new AccountState(e.AccountId)
-            ),
+            (null, AccountEvent.AccountOpened e) => Ok(new AccountState(e.AccountId)),
 
-            _ => Result<AccountState?, AccountError>.Ok(state),
+            _ => Ok(state),
         };
 }

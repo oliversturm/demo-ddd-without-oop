@@ -2,6 +2,7 @@ using CsharpFp3.Application;
 using CsharpFp3.Domain;
 using CsharpFp3.Infrastructure;
 using CsharpFp3.Library;
+using static CsharpFp3.Library.ResultModule;
 
 namespace CsharpFp3.Tests;
 
@@ -15,7 +16,8 @@ public class WithdrawMoneyTests
     ) BuildHandler()
     {
         var repo = InMemoryAccountRepository.Create();
-        var withdraw = AccountApplication.CreateWithdrawMoney(repo).Value;
+        var result = AccountApplication.CreateWithdrawMoney(repo);
+        var withdraw = result.Match(v => v, _ => throw new InvalidOperationException("Expected success"));
         return (withdraw, repo);
     }
 
@@ -24,11 +26,12 @@ public class WithdrawMoneyTests
     {
         var (withdraw, repo) = BuildHandler();
         var accountId = Guid.NewGuid();
-        repo.SaveAccount(AccountDomain.Open(accountId, new Money(200m)).Value);
+        var accountResult = AccountDomain.Open(accountId, new Money(200m));
+        repo.SaveAccount(accountResult.Match(v => v, _ => throw new InvalidOperationException("Expected success")));
 
         withdraw(accountId, 75m);
 
-        var account = repo.LoadAccount(accountId).Value;
+        var account = repo.LoadAccount(accountId).Match(v => v, _ => throw new InvalidOperationException("Expected success"));
         Assert.Equal(125m, account.Balance.Amount);
     }
 
@@ -37,11 +40,12 @@ public class WithdrawMoneyTests
     {
         var (withdraw, repo) = BuildHandler();
         var accountId = Guid.NewGuid();
-        repo.SaveAccount(AccountDomain.Open(accountId, new Money(100m)).Value);
+        var accountResult = AccountDomain.Open(accountId, new Money(100m));
+        repo.SaveAccount(accountResult.Match(v => v, _ => throw new InvalidOperationException("Expected success")));
 
         withdraw(accountId, 100m);
 
-        var account = repo.LoadAccount(accountId).Value;
+        var account = repo.LoadAccount(accountId).Match(v => v, _ => throw new InvalidOperationException("Expected success"));
         Assert.Equal(0m, account.Balance.Amount);
     }
 
@@ -52,7 +56,7 @@ public class WithdrawMoneyTests
 
         var result = withdraw(Guid.NewGuid(), 50m);
 
-        Assert.IsType<AccountError.AccountNotFound>(result.Error);
+        Assert.True(result.Match(_ => false, e => e is AccountError.AccountNotFound));
     }
 
     [Fact]
@@ -60,11 +64,12 @@ public class WithdrawMoneyTests
     {
         var (withdraw, repo) = BuildHandler();
         var accountId = Guid.NewGuid();
-        repo.SaveAccount(AccountDomain.Open(accountId, new Money(50m)).Value);
+        var accountResult = AccountDomain.Open(accountId, new Money(50m));
+        repo.SaveAccount(accountResult.Match(v => v, _ => throw new InvalidOperationException("Expected success")));
 
         var result = withdraw(accountId, 100m);
 
-        Assert.IsType<AccountError.InsufficientBalance>(result.Error);
+        Assert.True(result.Match(_ => false, e => e is AccountError.InsufficientBalance));
     }
 
     [Fact]
@@ -73,8 +78,9 @@ public class WithdrawMoneyTests
         var (withdraw, _) = BuildHandler();
         var accountId = Guid.NewGuid();
 
-        var error = Assert.IsType<AccountError.AccountNotFound>(
-            withdraw(accountId, 50m).Error
+        var error = withdraw(accountId, 50m).Match(
+            _ => throw new InvalidOperationException("Expected failure"),
+            e => e is AccountError.AccountNotFound notFound ? notFound : throw new InvalidOperationException("Expected AccountNotFound")
         );
 
         Assert.Equal(accountId, error.AccountId);
@@ -85,10 +91,12 @@ public class WithdrawMoneyTests
     {
         var (withdraw, repo) = BuildHandler();
         var accountId = Guid.NewGuid();
-        repo.SaveAccount(AccountDomain.Open(accountId, new Money(50m)).Value);
+        var accountResult = AccountDomain.Open(accountId, new Money(50m));
+        repo.SaveAccount(accountResult.Match(v => v, _ => throw new InvalidOperationException("Expected success")));
 
-        var error = Assert.IsType<AccountError.InsufficientBalance>(
-            withdraw(accountId, 120m).Error
+        var error = withdraw(accountId, 120m).Match(
+            _ => throw new InvalidOperationException("Expected failure"),
+            e => e is AccountError.InsufficientBalance ins ? ins : throw new InvalidOperationException("Expected InsufficientBalance")
         );
 
         Assert.Equal(50m, error.Balance.Amount);
@@ -100,11 +108,12 @@ public class WithdrawMoneyTests
     {
         var (withdraw, repo) = BuildHandler();
         var accountId = Guid.NewGuid();
-        repo.SaveAccount(AccountDomain.Open(accountId, new Money(50m)).Value);
+        var accountResult = AccountDomain.Open(accountId, new Money(50m));
+        repo.SaveAccount(accountResult.Match(v => v, _ => throw new InvalidOperationException("Expected success")));
 
         withdraw(accountId, 999m);
 
-        var account = repo.LoadAccount(accountId).Value;
+        var account = repo.LoadAccount(accountId).Match(v => v, _ => throw new InvalidOperationException("Expected success"));
         Assert.Equal(50m, account.Balance.Amount);
     }
 }
